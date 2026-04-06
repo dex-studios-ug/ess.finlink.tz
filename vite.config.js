@@ -5,7 +5,7 @@ import resolve from 'path';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 2000,
+    port: 2000, 
     allowedHosts: ['localhost','*'],
     proxy: {
       '/api/ess/': {
