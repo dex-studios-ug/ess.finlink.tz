@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "server",
       script: "server.js",
-      watch: true,
+      watch: false,
       env: {
         NODE_ENV: "development"
       }
@@ -19,7 +19,7 @@ module.exports = {
     {
       name: "crdb",
       script: "crdb.js",
-      watch: true,
+      watch: false,
       env: {
         NODE_ENV: "development"
       }
