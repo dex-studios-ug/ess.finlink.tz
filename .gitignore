@@ -1,6 +1,5 @@
-.env
+
 node_modules/
-certs/
-db/
+
 logs/
-crdb_database.sqlite
+
