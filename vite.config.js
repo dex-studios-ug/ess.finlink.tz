@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 2000,
+    allowedHosts: ['localhost','*'],
     proxy: {
       '/api/ess/': {
         target: 'http://localhost:3000',
