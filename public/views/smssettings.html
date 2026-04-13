@@ -1,0 +1,169 @@
+<div id="smssettings" class="settings-container">
+
+  <h2 class="center">SMS Template Settings</h2>
+
+  <!-- Gateway Configuration 
+  <div class="card settings-section">
+    <h4>Sms Template Configuration</h4>
+    <div class="form-group">
+      <label>API Endpoint</label>
+      <input type="url" class="form-control" ng-model="settings.gatewayUrl" placeholder="https://api.smsprovider.com/send" required>
+    </div>
+
+    <div class="form-group">
+      <label>API Key / Token</label>
+      <input type="password" class="form-control" ng-model="settings.apiKey" placeholder="••••••••••••••••" required>
+    </div>
+
+    <div class="form-group">
+      <label>Request Headers</label>
+      <textarea class="form-control" ng-model="settings.headers" placeholder='{"Content-Type": "application/json"}'></textarea>
+    </div>
+  </div>
+
+ Sender ID
+  <div class="card settings-section">
+    <h4>Sender ID</h4>
+    <input type="text" class="form-control" ng-model="settings.senderId" maxlength="11" placeholder="BANKSMS">
+    <small class="form-text text-muted">Max 11 alphanumeric characters. Regulated by telecom laws.</small>
+  </div>
+   -->
+  <div class="card settings-section">
+  <h4>Enable/Disable Features</h4>
+  <small class="form-text text-muted">Available Variables are(where appliable):<span>{clientName}</span>, <span>{transactionDate}</span>, <span>{accountType}</span>, <span>{accountNo}</span>, <span>{accountBalance}</span>, <span>{companyName}</span> and <span>{transactionAmount}</span></small>
+
+
+  <div class="form-check" ng-repeat="feature in settings.features">
+    <input type="checkbox"
+           class="form-check-input"
+           id="feature-{{$index}}"
+           ng-model="feature.enabled">
+    <label class="form-check-label" for="feature-{{$index}}">
+      {{feature.label}}
+    </label>
+     <h4>{{feature.label }} Message Template (Default)</h4>
+     <select ng-options="(feature.templates.indexOf(f)+1) +'. '+f.slice(0,40) for f in feature.templates" ng-model="feature.template"></select>
+     <button class="pill btn-primary pull-right " ng-click="saveTemplate(feature)" ng-show="feature.template"> save</button>
+     <button class="pill btn-primary pull-right " ng-click="removeTemplate(feature)" ng-show="feature.template"> remove</button>
+          <button class="pill pull-right " ng-click="reset(feature)" ng-show="!feature.template"> default</button>
+
+    <textarea class="form-control" ng-model="feature.template" rows="3" placeholder="{{feature.defaultTemplate}}"></textarea>
+    
+  </div>
+
+
+  <!-- Message Template 
+  <div class="card settings-section">
+    <h4>Message Template (Default)</h4>
+    <textarea class="form-control" ng-model="settings.defaultTemplate" rows="3" placeholder="Dear {{customerName}}, your OTP is {{otp}}. Do not share it."></textarea>
+    <small class="form-text text-muted">Use variables like <code>{{otp}}</code>, <code>{{customerName}}</code>, etc.</small>
+  </div>-->
+
+  <!-- Rate Limits -->
+  <div class="card settings-section">
+    <h4>Rate Limiting</h4>
+    <div class="form-row">
+      <div class="form-group col-md-6">
+        <label>Max Messages / Minute</label>
+        <input type="number" class="form-control" ng-model="settings.rateLimit" min="1" max="1000">
+      </div>
+      <div class="form-group col-md-6">
+        <label>Retry on Failure</label>
+        <select class="form-control" ng-model="settings.retryPolicy">
+          <option value="none">None</option>
+          <option value="simple">Simple Retry</option>
+          <option value="exponential">Exponential Backoff</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toggles 
+  <div class="card settings-section">
+    <h4>System Notifications</h4>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="settings.autoinsertvcn" id="vcn">
+      <label class="form-check-label" for="vcn">Auto Insert Voucher Numbers</label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="settings.otpeverylogin" id="otp">
+      <label class="form-check-label" for="otp">Require OTP for every LOGIN</label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="settings.notifyOnFailure" id="notifyFail">
+      <label class="form-check-label" for="notifyFail">Notify Admin on Delivery Failure</label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="settings.enableDeliveryReports" id="dlr">
+      <label class="form-check-label" for="dlr">Enable Delivery Reports (DLRs)</label>
+    </div>
+  </div>
+-->
+
+
+  <!-- Save Button -->
+  <div class="mt-4 center" style="margin  :  20px;">
+  <button class="btn btn-success" ng-click="saveSettings()">Save Settings</button>
+  </div>
+</div>
+<style type="text/css">
+ #smssettings .settings-container {
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px;
+  font-family: 'Roboto', sans-serif;
+  color: #003366;
+}
+
+ #smssettings  h2 {
+  margin-bottom: 30px;
+  color: #002b5c;
+  font-weight: 500;
+}
+
+ #smssettings  .card.settings-section {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 20px 25px;
+  margin-bottom: 25px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+}
+
+ #smssettings  .card h4 {
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 500;
+  color: #004085;
+}
+
+ #smssettings .form-control {
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+ #smssettings .form-text.text-muted {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+ #smssettings .form-check-label {
+  font-size: 14px;
+}
+
+ #smssettings .btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+ #smssettings .btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+ #smssettings .test-result {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #006400;
+}
+
+</style>

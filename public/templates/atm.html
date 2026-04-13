@@ -1,0 +1,624 @@
+<div class="card whitebg well ng-scope px-2 container-fluid" ng-controller="ATMViewCtrl">
+    <!-- Page Header -->
+    <div class="row">
+        <div class="">
+            <h2 class="">
+                <i class="fa fa-credit-card"></i> ATM Transaction Logs
+                <small>ATM Integration - Transaction Monitoring</small>
+                <button class="btn btn-sm btn-primary float-right" ng-click="refresh()">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button><a href="#/viewatmportal"><button class="btn btn-sm btn-primary float-right" >
+                    <i class="fa fa-refresh"></i> Go to Portal
+                </button></a>
+                
+            </h2>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row ">
+        <div class="col-md-2">
+            <div class="card text-center bg-primary">
+                <div class="card-body">
+                    <div class="stat-number">{{stats.total || 0}}</div>
+                    <div class="stat-label">Total Transactions</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-success">
+                <div class="card-body">
+                    <div class="stat-number">{{stats.successful || 0}}</div>
+                    <div class="stat-label">Successful</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-danger">
+                <div class="card-body">
+                    <div class="stat-number">{{stats.failed || 0}}</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-info">
+                <div class="card-body">
+                    <div class="stat-number">{{stats.withdrawals || 0}}</div>
+                    <div class="stat-label">Withdrawals</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-warning">
+                <div class="card-body">
+                    <div class="stat-number">{{stats.totalAmount | number:0 || 0}}</div>
+                    <div class="stat-label">Total Amount (TZS)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center bg-secondary">
+                <div class="card-body">
+                    <div class="stat-number">{{stats.today || 0}}</div>
+                    <div class="stat-label">Today</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alert Messages -->
+    <div class="row" ng-show="successMessage">
+        <div class="">
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fa fa-check-circle"></i> {{successMessage}}
+                <button type="button" class="close" ng-click="successMessage=null">
+                    <span>&times;</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row" ng-show="errorMessage">
+        <div class="">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fa fa-exclamation-circle"></i> {{errorMessage}}
+                <button type="button" class="close" ng-click="errorMessage=null">
+                    <span>&times;</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter Section -->
+    <div class="row">
+        <div class="">
+            <div class="card ">
+                <div class="card-header">
+                    <i class="fa fa-filter"></i> Filters
+                    <button class="btn btn-sm btn-secondary float-right" ng-click="resetFilters()">
+                        <i class="fa fa-refresh"></i> Reset
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Search</label>
+                                <input type="text" class="form-control" ng-model="searchText" 
+                                       placeholder="Search by Reference, PAN, Account..."
+                                       ng-model-options="{debounce: 500}" ng-change="applyFilters()">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Transaction Type</label>
+                                <select class="form-control" ng-model="selectedTransactionType" ng-change="applyFilters()">
+                                    <option value="">All</option>
+                                    <option value="WITHDRAWAL">Withdrawal</option>
+                                    <option value="BALANCE_INQUIRY">Balance Inquiry</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select class="form-control" ng-model="selectedStatus" ng-change="applyFilters()">
+                                    <option value="">All</option>
+                                    <option value="SUCCESS">Success</option>
+                                    <option value="FAILED">Failed</option>
+                                    <option value="PROCESSING">Processing</option>
+                                    <option value="REVERSED">Reversed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Response Code</label>
+                                <select class="form-control" ng-model="selectedResponseCode" ng-change="applyFilters()">
+                                    <option value="">All</option>
+                                    <option value="0">0 - Success</option>
+                                    <option value="96">96 - System Error</option>
+                                    <option value="99">99 - Failed</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Date Range</label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" ng-model="dateFrom" placeholder="From" ng-change="applyFilters()">
+                                    <input type="date" class="form-control" ng-model="dateTo" placeholder="To" ng-change="applyFilters()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" ng-model="showReversedOnly" ng-change="applyFilters()">
+                                <label class="form-check-label">Show Reversed Transactions Only</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Bar -->
+    <div class="row ">
+        <div class="col-md-6">
+            <button class="btn btn-danger btn-sm" ng-click="bulkDelete()" ng-disabled="!anySelected()">
+                <i class="fa fa-trash"></i> Delete Selected
+            </button>
+            <button class="btn btn-success btn-sm ml-2" ng-click="exportToCSV()">
+                <i class="fa fa-download"></i> Export to CSV
+            </button>
+        </div>
+        <div class="col-md-6 text-right">
+            <span class="text-muted">Total: {{totalItems}} records</span>
+        </div>
+    </div>
+    
+    <!-- ATM Logs Table -->
+    <div class="row">
+        <div class="">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover table-sm">
+                    <thead>
+                        <tr>
+                            <th width="30">
+                                <input type="checkbox" ng-model="allSelected" ng-change="selectAll()">
+                            </th>
+                            <th>ID</th>
+                            <th>Reference</th>
+                            <th>PAN</th>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th>Response</th>
+                            <th>Status</th>
+                            <th>Reversed</th>
+                            <th>Created At</th>
+                            <th width="120">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="log in atmLogs" ng-class="{'table-danger': log.status == 'FAILED', 'table-warning': log.status == 'PROCESSING', 'table-secondary': log.is_reversed == 1}">
+                            <td>
+                                <input type="checkbox" ng-model="log.selected" ng-disabled="log.is_reversed == 1">
+                            </td>
+                            <td>{{log.id}}</td>
+                            <td>
+                                <code>{{log.reference | limitTo: 20}}{{log.reference.length>20?'...':''}}</code>
+                            </td>
+                            <td>{{log.pan | limitTo: 16}}</td>
+                            <td>{{log.account_no}}</td>
+                            <td>
+                                <span class="badge" ng-class="log.transaction_type == 'WITHDRAWAL' ? 'badge-primary' : 'badge-info'">
+                                    {{log.transaction_type == 'WITHDRAWAL' ? 'Withdraw' : 'Balance'}}
+                                </span>
+                            </td>
+                            <td> class="text-right">
+                                <strong ng-if="log.transaction_type == 'WITHDRAWAL'">{{log.amount | number:0}}</strong>
+                                <span ng-if="log.transaction_type != 'WITHDRAWAL'">-</span>
+                            </td>
+                            <td>
+                                <span class="badge" ng-class="getResponseCodeClass(log.response_code)">
+                                    {{log.response_code}}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge" ng-class="getStatusClass(log.status)">
+                                    {{log.status}}
+                                </span>
+                            </td>
+                            <td>
+                                <span ng-if="log.is_reversed" class="badge badge-danger">Yes</span>
+                                <span ng-if="!log.is_reversed" class="badge badge-secondary">No</span>
+                            </td>
+                            <td>{{log.created_at | date:'yyyy-MM-dd HH:mm:ss'}}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" ng-click="viewDetails(log)" title="View Details">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" ng-click="reverseTransaction(log)" 
+                                        ng-disabled="log.is_reversed == 1 || log.status != 'SUCCESS'" 
+                                        title="Reverse Transaction">
+                                    <i class="fa fa-undo"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" ng-click="deleteLog(log)" title="Delete">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr ng-show="!loading && atmLogs.length === 0">
+                            <td colspan="12" class="text-center text-muted">
+                                <i class="fa fa-inbox fa-2x"></i>
+                                <p>No ATM logs found</p>
+                            </td>
+                        </tr>
+                        <tr ng-show="loading">
+                            <td colspan="12" class="text-center">
+                                <i class="fa fa-spinner fa-spin fa-2x"></i>
+                                <p>Loading...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="row" ng-show="totalItems > pageSize">
+        <div class="">
+            <ul uib-pagination total-items="totalItems" 
+                ng-model="currentPage" 
+                ng-change="pageChanged()"
+                items-per-page="pageSize"
+                max-size="5"
+                boundary-links="true"
+                class="pagination-sm justify-content-center">
+            </ul>
+        </div>
+    </div>
+    
+    <!-- ATM Details Modal -->
+    <div class="modal fade" id="atmDetailsModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-credit-card"></i> ATM Transaction Details
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body" ng-if="selectedLog">
+                    <!-- Transaction Information -->
+                    <div class="row">
+                        <div class="">
+                            <div class="card ">
+                                <div class="card-header">
+                                    <strong>Transaction Information</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">ID:</div>
+                                        <div class="col-md-3">{{selectedLog.id}}</div>
+                                        <div class="col-md-3 font-weight-bold">Reference:</div>
+                                        <div class="col-md-3"><code>{{selectedLog.reference}}</code></div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Transaction Type:</div>
+                                        <div class="col-md-3">{{selectedLog.transaction_type}}</div>
+                                        <div class="col-md-3 font-weight-bold">Status:</div>
+                                        <div class="col-md-3">
+                                            <span class="badge" ng-class="getStatusClass(selectedLog.status)">
+                                                {{selectedLog.status}}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Response Code:</div>
+                                        <div class="col-md-3">
+                                            <span class="badge" ng-class="getResponseCodeClass(selectedLog.response_code)">
+                                                {{selectedLog.response_code}}
+                                            </span>
+                                        </div>
+                                        <div class="col-md-3 font-weight-bold">Response Message:</div>
+                                        <div class="col-md-3">{{selectedLog.response_message || '-'}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Response Time:</div>
+                                        <div class="col-md-3">{{selectedLog.response_time}}ms</div>
+                                        <div class="col-md-3 font-weight-bold">IP Address:</div>
+                                        <div class="col-md-3">{{selectedLog.ip_address || '-'}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Card/Account Information -->
+                    <div class="row">
+                        <div class="">
+                            <div class="card ">
+                                <div class="card-header">
+                                    <strong>Card & Account Information</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">PAN:</div>
+                                        <div class="col-md-3">{{selectedLog.pan}}</div>
+                                        <div class="col-md-3 font-weight-bold">Account Number:</div>
+                                        <div class="col-md-3">{{selectedLog.account_no}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Terminal:</div>
+                                        <div class="col-md-3">{{selectedLog.terminal || '-'}}</div>
+                                        <div class="col-md-3 font-weight-bold">Savings ID:</div>
+                                        <div class="col-md-3">{{selectedLog.savings_id || '-'}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Amount:</div>
+                                        <div class="col-md-3"><strong>{{formatAmount(selectedLog.amount)}}</strong></div>
+                                        <div class="col-md-3 font-weight-bold">Charge:</div>
+                                        <div class="col-md-3">{{formatAmount(selectedLog.charge)}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Settlement Account:</div>
+                                        <div class="col-md-9">{{selectedLog.settlement_account || '-'}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Balance Information -->
+                    <div class="row">
+                        <div class="">
+                            <div class="card ">
+                                <div class="card-header">
+                                    <strong>Balance Information</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Available Balance After:</div>
+                                        <div class="col-md-3">{{formatAmount(selectedLog.available_balance_after)}}</div>
+                                        <div class="col-md-3 font-weight-bold">Ledger Balance After:</div>
+                                        <div class="col-md-3">{{formatAmount(selectedLog.ledger_balance_after)}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reversal Information (if reversed) -->
+                    <div class="row" ng-if="selectedLog.is_reversed">
+                        <div class="">
+                            <div class="card border-danger ">
+                                <div class="card-header bg-danger text-center">
+                                    <strong>Reversal Information</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Reversal Reference:</div>
+                                        <div class="col-md-9"><code>{{selectedLog.reversal_reference}}</code></div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Reversal Fineract ID:</div>
+                                        <div class="col-md-9">{{selectedLog.reversal_fineract_id}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fineract Information -->
+                    <div class="row">
+                        <div class="">
+                            <div class="card ">
+                                <div class="card-header">
+                                    <strong>Fineract Information</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Fineract ID:</div>
+                                        <div class="col-md-9">{{selectedLog.fineract_id}}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Request Payload -->
+                    <div class="row" ng-if="selectedLog.request_payload">
+                        <div class="">
+                            <div class="card ">
+                                <div class="card-header">
+                                    <strong>Request Payload</strong>
+                                    <button class="btn btn-sm btn-secondary float-right" ng-click="copyToClipboard(selectedLog.request_payload)">
+                                        <i class="fa fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <pre class="payload-display">{{selectedLog.request_payload | json}}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Response Payload -->
+                    <div class="row" ng-if="selectedLog.response_payload">
+                        <div class="">
+                            <div class="card ">
+                                <div class="card-header">
+                                    <strong>Response Payload</strong>
+                                    <button class="btn btn-sm btn-secondary float-right" ng-click="copyToClipboard(selectedLog.response_payload)">
+                                        <i class="fa fa-copy"></i> Copy
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <pre class="payload-display">{{selectedLog.response_payload | json}}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Error Message -->
+                    <div class="row" ng-if="selectedLog.error_message">
+                        <div class="">
+                            <div class="card border-danger ">
+                                <div class="card-header bg-danger text-center">
+                                    <strong>Error Message</strong>
+                                </div>
+                                <div class="card-body">
+                                    <pre class="text-danger">{{selectedLog.error_message}}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Timestamps -->
+                    <div class="row">
+                        <div class="">
+                            <div class="card">
+                                <div class="card-header">
+                                    <strong>Timestamps</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <strong>Created At:</strong> {{selectedLog.created_at | date:'yyyy-MM-dd HH:mm:ss'}}
+                                        </div>
+                                        <div class="col-md-6">
+                                            <strong>Updated At:</strong> {{selectedLog.updated_at | date:'yyyy-MM-dd HH:mm:ss'}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" ng-click="reverseTransaction(selectedLog)" 
+                            ng-disabled="selectedLog.is_reversed == 1 || selectedLog.status != 'SUCCESS'" data-dismiss="modal">
+                        <i class="fa fa-undo"></i> Reverse Transaction
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .page-header {
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-number {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+    
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    
+    .badge-danger {
+        background-color: #dc3545;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    
+    .badge-warning {
+        background-color: #ffc107;
+        color: #333;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    
+    .badge-primary {
+        background-color: #007bff;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    
+    .payload-display {
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        border: 1px solid #333;
+        border-radius: 4px;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+    
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+    
+    .font-weight-bold {
+        font-weight: 600;
+    }
+    
+    .card {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .btn-sm {
+        margin: 0 2px;
+    }
+    
+    code {
+        font-size: 11px;
+        background-color: #f4f4f4;
+        padding: 2px 4px;
+        border-radius: 3px;
+    }
+    
+    .table-secondary {
+        background-color: #f8f9fa !important;
+    }
+    
+    .form-check {
+        margin-top: 10px;
+    }
+</style>

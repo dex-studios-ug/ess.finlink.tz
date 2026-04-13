@@ -832,7 +832,47 @@ class NotificationService {
         this.retryAttempts = 3;
         this.retryDelayMs = 1000;
     }
-
+ async sendNotificationRaw(messageType, messageDetails, notificationId = null) {
+        const msgId = notificationId || this.signature.generateMsgId();
+        const payload = messageType;//this.signature.generateXmlDocument(messageType, messageDetails);
+        
+        for (let attempt = 1; attempt <= this.retryAttempts; attempt++) {
+            try {
+                const response = await axios.post(this.essUrl, payload, {
+                    headers: {
+                        'Content-Type': 'application/xml',
+                        'X-Message-Type': messageType,
+                        'X-Message-ID': msgId,
+                        'X-FSP-Code': config.fspCode
+                    },
+                    timeout: 10000
+                });
+                
+                logger.info(`Notification sent successfully: ${messageType}`, {
+                    messageId: msgId,
+                    attempt,
+                    statusCode: response.status
+                });
+                return { success: true, messageId: msgId, statusCode: response.status };
+            } catch (error) {
+                logger.warn(`Notification send failed (attempt ${attempt}/${this.retryAttempts}): ${messageType}`, {
+                    messageId: msgId,
+                    error: error.message,
+                    nextRetryIn: attempt < this.retryAttempts ? this.retryDelayMs : 'no retry'
+                });
+                
+                if (attempt < this.retryAttempts) {
+                    await new Promise(resolve => setTimeout(resolve, this.retryDelayMs * attempt));
+                } else {
+                    logger.error(`Failed to send notification after ${this.retryAttempts} attempts: ${messageType}`, {
+                        messageId: msgId,
+                        error: error.message
+                    });
+                    return { success: false, messageId: msgId, error: error.message };
+                }
+            }
+        }
+    }
     async sendNotification(messageType, messageDetails, notificationId = null) {
         const msgId = notificationId || this.signature.generateMsgId();
         const payload = this.signature.generateXmlDocument(messageType, messageDetails);
@@ -1015,7 +1055,7 @@ app.use((req, res, next) => {
 });
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/ess/health', (req, res) => {
     res.json({
         status: 'healthy',
         timestamp: new Date().toISOString(),
@@ -1160,22 +1200,77 @@ app.post('/api/ess/products/catalog', async (req, res) => {
             ShariaFacility: false
         }));
         
-        const xmlResponse = signatureService.generateXmlDocument('PRODUCT_DETAIL', catalog);
-        res.type('application/xml').send(xmlResponse);
+        //const xmlResponse = signatureService.generateXmlDocument('PRODUCT_DETAIL', catalog);
+        //res.type('application/xml').send(xmlResponse);
+        res.json({
+            success:true,
+            products:catalog
+        });
     } catch (error) {
         logger.error('Product catalog error:', error);
-        res.status(500).type('application/xml').send(signatureService.generateResponse('8011', 'Internal server error'));
+        res.status(500);
+        //.type('application/xml').send(signatureService.generateResponse('8011', 'Internal server error'));
     }
+});
+app.post('/api/ess/products/commission', async (req, res) => {
+    try {
+        const {productIds}=req.body;
+        const products = await mifosxClient.getLoanProducts();
+        if (!products.success) {
+            return res.status(500).json({ error: 'Failed to fetch products' });
+        }
+        
+        const catalog = products.data.filter((p)=>productIds.includes(p)).map(product => ({
+            FSPCode: config.fspCode,
+            FSPName: config.fspName,
+            ProductCode: product.id,
+            ProductName: product.name,
+            MinimumTenure: product.minPrincipal ? 1 : 3,
+            MaximumTenure: product.maxPrincipal ? 36 : 24,
+            InterestRate: product.interestRatePerPeriod || 10,
+            ProcessingFee: product.processingFee || 2,
+            Insurance: product.insurance || 0.75,
+            MinAmount: product.minPrincipal || 100000,
+            MaxAmount: product.maxPrincipal || 5000000,
+            RepaymentType: product.repaymentStrategyType?.value || 'Flat',
+            TermsAndCondition: [
+                { TermsConditionNumber: 'TC001', Description: 'Monthly deductions via salary', TCEffectiveDate: new Date().toISOString() }
+            ],
+            ProductDescription: product.description || product.name,
+            ForExecutive: false,
+            DeductionCode: `${config.fspCode}_DED`,
+            InsuranceType: 'DISTRIBUTED',
+            ShariaFacility: false
+        }));
+        
+        notificationService.sendNotification('PRODUCT_DETAIL',catalog);
+        
+        res.json({
+            success:true,
+            productsCommissioned:catalog
+        });
+    } catch (error) {
+        logger.error('Product catalog error:', error);
+         res.status(500).json({ 'error': error });
+   }
 });
 
 // Product Decommission
 app.post('/api/ess/products/decommission', async (req, res) => {
-    const parsed = signatureService.parseXmlDocument(req.body);
-    if (!parsed || !parsed.isValid) {
-        return res.status(401).type('application/xml').send(signatureService.generateResponse('8009', 'Invalid signature'));
-    }
-    
-    res.type('application/xml').send(signatureService.generateResponse('8000', 'Product decommission acknowledged'));
+   try{
+    const {productIds}=req.body;
+    const products = productIds.map(p=>({ProductCode:p}))
+        notificationService.sendNotification('PRODUCT_DECOMMISSION',products);
+        res.json({
+            success:true,
+            productsDecommissioned:products
+        })
+   }catch(error){
+    logger.error('Decommission error ',error);
+    res.status(500).json({ 'error': error });
+   }
+   // res.type('application/xml').send(signatureService.generateResponse('8000', 'Product decommission acknowledged'));
+//product decomission not implemented here
 });
 
 // Loan Charges Request

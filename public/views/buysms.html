@@ -1,0 +1,33 @@
+
+
+<link rel="stylesheet" type="text/css" href="styles.css">
+<style type="text/css">  	.smspackages .streak,.work,.pro,.entreprise{  		border:2px solid gray;  		transform:rotate3d(0, 1, 0, 15deg);  		box-shadow: 2px 4px 4px 2px dimgray;  		padding-bottom: 30px;  	}  	.smspackages h2 {  		text-decoration: underline;  	}  	.smspackages div.ico {  		border-radius: 100%;  		font-size: 20px;  		color:white;  		width: 60px;  		height: 60px;  		margin: auto;  		background-color: #1abc9c;  		  	}    </style>
+<div class="container" >
+<u><h1 class="h1">Buy SMS Package </h1></u>
+<div class="row"><a class="pull-right" ng-click="showpayments=!showpayments">{{showpayments?'Hide Payments':'Show Payments'}}<b class="caret"></b></a>
+</div>
+<div class="row card" ng-show="showpayments" style="padding:25px;">
+	<h3 class="mytransactions">My Transactions <btn class="pull-right" ng-click="fetchtrns()"><i class="fa fa-refresh"></i></btn></h3>
+	<table class="table">
+		<tr><th>REF</th><th>PACKAGE</th><th>AMOUNT/TZS</th><th>CREATION</th><th>STATUS</th><th>CODE</th></tr>
+		<tr ng-repeat="t in transactions"><td>{{t.ref}}</td><td>{{t.package | uppercase}}</td><td>{{t.amount | number}}</td><td>{{t.created_at | date}}</td><td>{{t.status}}</td><td><button class="btn" ng-click="alert(t.code)">View Code</button></td></tr>
+	</table>
+</div>
+<div class="smspackages row center text-center" ng-show="!showpayments">
+	<div class="{{pack.name}} col-sm-3" ng-repeat="pack in packages">
+		<h2 class="h2">{{pack.name | uppercase}}<br> PACKAGE</h2>
+		<div class="ico"><i class="{{pack.icon}}"></i></div>
+		<div class="price"><h3 class="h3">Price: {{pack.price | number}} TZS</h3></div>
+		<div class="desc">
+			<h5 class="comment">Description:{{pack.description}}</h5>
+		</div>
+		<div class="cta">
+			<button class="btn btn-success" ng-click="pay(pack.name)">BUY NOW</button>
+		</div>
+	</div>
+
+<div class="contact ">
+	<span class="pull-right"><i>Having issues? Call <a href="tel:+{{settings.paytonumber}}">{{settings.paytonumber}}</a> </i> </span>
+</div>
+
+</div>

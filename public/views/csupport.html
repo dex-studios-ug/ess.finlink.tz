@@ -1,0 +1,69 @@
+<div class="card content-container">
+ <div ng-controller="SupportController" class="panel panel-default" style="margin: 20px auto;">
+  <div class="panel-heading clearfix btn-primary" style="">
+    <div class="pull-left">
+      <h2 style="margin: 0;">Customer Support</h2>
+    </div>
+    <div class="pull-right">
+      <input type="text" class="form-control input-sm" style="margin-top: 5px;" placeholder="Customer Id" ng-model="support.customerId">
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs">
+    <li ng-class="{active: tab === 'chat'}"><a href="" ng-click="tab = 'chat'">Chat</a></li>
+    <li ng-class="{active: tab === 'email'}"><a href="" ng-click="tab = 'email'">Email</a></li>
+    <li ng-class="{active: tab === 'whatsapp'}"><a href="" ng-click="tab = 'whatsapp'">WhatsApp</a></li>
+  </ul>
+
+  <div class="panel-body" style="padding: 0;">
+    <!-- CHAT TAB -->
+    <div ng-show="tab === 'chat'" style="display: flex; flex-direction: column; height: 400px;">
+      <div class="chat-body" style="flex: 1; overflow-y: auto; padding: 15px; background: #ECE5DD;">
+        <div ng-repeat="msg in chatMessages" class="clearfix" style="margin-bottom: 10px;">
+          <div class="well well-sm" ng-class="{'pull-left': msg.sender !== 'Support Agent', 'pull-right': msg.sender === 'Support Agent'}" style="max-width: 60%; background: {{ msg.sender === 'Support Agent' ? '#DCF8C6' : '#FFF' }};">
+            <strong>{{msg.sender}}</strong><br>
+            {{msg.text}}<br>
+            <small class="text-muted">{{msg.timestamp | date:'shortTime'}}</small>
+          </div>
+        </div>
+      </div>
+      <div class="input-group" style="padding: 10px; background: #f0f0f0;">
+        <input type="text" class="form-control" placeholder="Type your message..." ng-model="newChatMessage" ng-keypress="$event.which === 13 && sendChatMessage()">
+        <span class="input-group-btn">
+          <button class="btn btn-success" type="button" ng-click="sendChatMessage()">Send</button>
+        </span>
+      </div>
+    </div>
+
+    <!-- EMAIL TAB -->
+    <div ng-show="tab === 'email'" style="padding: 15px; height:  400px;">
+      <div class="form-group">
+        <label>To</label>
+        <input type="text" class="form-control" ng-model="email.to">
+      </div>
+      <div class="form-group">
+        <label>Subject</label>
+        <input type="text" class="form-control" ng-model="email.subject">
+      </div>
+      <div class="form-group">
+        <label>Body</label>
+        <textarea class="form-control" rows="5" ng-model="email.body"></textarea>
+      </div>
+      <button class="btn btn-primary" ng-click="sendEmail()">Send Email</button>
+    </div>
+
+    <!-- WHATSAPP TAB -->
+    <div ng-show="tab === 'whatsapp'" style="padding: 15px; height:  400px;">
+      <div class="form-group">
+        <label>Recipient Number</label>
+        <input type="text" class="form-control" ng-model="whatsapp.to" placeholder="+255...">
+      </div>
+      <div class="form-group">
+        <label>Message</label>
+        <textarea class="form-control" rows="3" ng-model="whatsapp.message"></textarea>
+      </div>
+      <button class="btn btn-success" ng-click="sendWhatsApp()">Send via WhatsApp</button>
+    </div>
+  </div>
+</div>
+</div>

@@ -1,0 +1,38 @@
+<!-- SMS Compose Modal -->
+
+
+<div ng-contoller="SmsModalController">
+
+      <!-- Modal Header -->
+      <div class="modal-header">
+        <h4 class="modal-title">Compose New SMS</h4>
+        <button type="button" class="close" ng-click="close()">&times;</button>
+      </div>
+
+      <!-- Modal Body -->
+
+      <div class="modal-body">
+        <form name="smsForm">
+          
+          <!-- Recipient -->
+          <div class="form-group">
+            <label for="recipient">Recipient</label>
+            <input type="text" id="recipient" class="form-control" ng-model="sms.receiver" placeholder="+1234567890 or a comma separated list" required>
+          </div>
+
+          <!-- Message Body -->
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea id="message" class="form-control" rows="4" ng-model="sms.message" maxlength="160" required></textarea>
+            <div class="char-count">{{sms.message.length}} / 160 characters</div>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer">
+        <button class="btn btn-secondary" ng-click="close()">Cancel</button>
+        <button class="btn btn-primary" ng-click="sendMessage(sms)" ng-disabled="!sms.receiver || !sms.message">Send</button>
+      </div>
+   </div>

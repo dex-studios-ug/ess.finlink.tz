@@ -1,0 +1,329 @@
+<div class="whitebg  card" id="smslog" ng-controller="SMSViewCtrl" style="padding: 20px;">
+    <!-- Page Header -->
+    <div class="row">
+        
+            <h4 class="text-center">
+                <i class="fa fa-envelope"></i> SMS Notifications
+                
+            </h4>
+    
+    </div>
+    
+
+    <!-- Filter Section -->
+    <div class="row">
+        <div class="">
+            <div class="">
+                <div class="">
+                    <i class="fa fa-filter"></i> Filters
+                    <button class="btn btn-sm btn-secondary float-right" ng-click="resetFilters()">
+                        <i class="fa fa-refresh"></i> Reset
+                    </button>
+                </div>
+                <div class="">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Search</label>
+                                <input type="text" class="form-control" ng-model="searchText" 
+                                       placeholder="Search by receiver or message..."
+                                       ng-model-options="{debounce: 500}" ng-change="applyFilters()">
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Status</label>
+                                <select class="form-control" ng-model="selectedStatus" ng-change="applyFilters()">
+                                    <option value="">All</option>
+                                    <option ng-repeat="status in statusOptions" value="{{status}}">{{status}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Type</label>
+                                <select class="form-control" ng-model="selectedType" ng-change="applyFilters()">
+                                    <option value="">All</option>
+                                    <option ng-repeat="type in typeOptions" value="{{type}}">{{type}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label>Entity</label>
+                                <select class="form-control" ng-model="selectedEntity" ng-change="applyFilters()">
+                                    <option value="">All</option>
+                                    <option ng-repeat="entity in entityOptions" value="{{entity}}">{{entity}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Date Range</label>
+                                <form class="form-inline">
+  <div class="form-group">
+    <label>From</label>
+    <input type="date" class="form-control"
+           ng-model="dateFrom"
+           ng-change="applyFilters()">
+  </div>
+
+  <div class="form-group" style="margin-left:10px;">
+    <label>To</label>
+    <input type="date" class="form-control"
+           ng-model="dateTo"
+           ng-change="applyFilters()">
+  </div>
+</form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Bar -->
+    <div class="row ">
+        <div class="col-md-6">
+            <button class="btn btn-danger btn-sm" ng-click="bulkDelete()" ng-disabled="!anySelected()">
+                <i class="fa fa-trash"></i> Delete Selected
+            </button>
+            <button class="btn btn-success btn-sm ml-2" ng-click="exportToCSV()">
+                <i class="fa fa-download"></i> Export to CSV
+            </button>
+        </div>
+        <div class="col-md-6 text-right">
+            <span class="text-muted">Total: {{totalItems}} records</span>
+        </div>
+    </div>
+    
+    <!-- SMS Logs Table -->
+    <div class="row">
+        <div class="">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th width="30">
+                                <input type="checkbox" ng-model="allSelected" ng-change="selectAll()">
+                            </th>
+                            <th>ID</th>
+                            <th>Receiver</th>
+                            <th>Message</th>
+                            <th>Status</th>
+                            <th>Type</th>
+                            <th>Entity/Action</th>
+                            <th>Client</th>
+                            <th>Created At</th>
+                            <th width="150">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="log in smsLogs" ng-class="{'table-warning': log.status == 'Pending'}">
+                            <td>
+                                <input type="checkbox" ng-model="log.selected">
+                            </td>
+                            <td>{{log.id}}</td>
+                            <td>
+                                <span title="{{log.receiver}}">{{log.receiver | limitTo:15}}{{log.receiver.length>15?'...':''}}</span>
+                            </td>
+                            <td>
+                                <span title="{{log.message}}">{{log.message | limitTo:50}}{{log.message.length>50?'...':''}}</span>
+                                <button class="btn btn-sm btn-link p-0 ml-1" ng-click="viewDetails(log)" title="View full message">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                            </td>
+                            <td>
+                                <span class="badge {{getStatusClass(log.status)}}">{{log.status}}</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-info">{{log.type || 'N/A'}}</span>
+                            </td>
+                            <td>
+                                <small>{{log.entity || 'N/A'}} / {{log.action || 'N/A'}}</small>
+                            </td>
+                            <td>
+                                <small>
+                                    <strong>{{log.client_name || 'N/A'}}</strong><br>
+                                    <span class="text-muted">ID: {{log.client_id || 'N/A'}}</span>
+                                </small>
+                            </td>
+                            <td>{{log.created_at | date:'yyyy-MM-dd HH:mm:ss'}}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" ng-click="viewDetails(log)" title="View Details">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" ng-click="resendSMS(log)" 
+                                        ng-disabled="resendingId == log.id" title="Resend SMS">
+                                    <i class="fa fa-repeat" ng-class="{'fa-spin': resendingId == log.id}"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" ng-click="deleteLog(log)" title="Delete">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr ng-show="!loading && smsLogs.length === 0">
+                            <td colspan="10" class="text-center text-muted">
+                                <i class="fa fa-inbox fa-2x"></i>
+                                <p>No SMS logs found</p>
+                            </td>
+                        </tr>
+                        <tr ng-show="loading">
+                            <td colspan="10" class="text-center">
+                                <i class="fa fa-spinner fa-spin fa-2x"></i>
+                                <p>Loading...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="row text-center" ng-show="totalItems > pageSize">
+        <div class="">
+            <ul uib-pagination total-items="totalItems" 
+                ng-model="currentPage" 
+                ng-change="pageChanged()"
+                items-per-page="pageSize"
+                max-size="5"
+                boundary-links="true"
+                class="pagination-sm justify-content-center">
+            </ul>
+        </div>
+    </div>
+    
+    <!-- SMS Details Modal 
+    <div class="modal fade" id="smsDetailsModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-envelope"></i> SMS Details
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span><i class="fa fa-trash"></i> </span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row" ng-if="selectedLog">
+                        <div class="">
+                            <div class="card">
+                                <div class="card-header">
+                                    <strong>Message Information</strong>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">ID:</div>
+                                        <div class="col-md-9">{{selectedLog.id}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Receiver:</div>
+                                        <div class="col-md-9">{{selectedLog.receiver}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Status:</div>
+                                        <div class="col-md-9">
+                                            <span class="badge {{getStatusClass(selectedLog.status)}}">{{selectedLog.status}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Type:</div>
+                                        <div class="col-md-9">{{selectedLog.type || 'N/A'}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Entity/Action:</div>
+                                        <div class="col-md-9">{{selectedLog.entity || 'N/A'}} / {{selectedLog.action || 'N/A'}}</div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Client:</div>
+                                        <div class="col-md-9">
+                                            {{selectedLog.client_name || 'N/A'}} 
+                                            <span ng-if="selectedLog.client_id">(ID: {{selectedLog.client_id}})</span>
+                                        </div>
+                                    </div>
+                                    <div class="row ">
+                                        <div class="col-md-3 font-weight-bold">Created At:</div>
+                                        <div class="col-md-9">{{selectedLog.created_at | date:'yyyy-MM-dd HH:mm:ss'}}</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="">
+                                            <div class="card mt-3">
+                                                <div class="card-header">
+                                                    <strong>Message Content</strong>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="sms-message p-3" style="background-color: #f8f9fa; border-radius: 5px;">
+                                                        {{selectedLog.message}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" ng-click="resendSMS(selectedLog)" data-dismiss="modal">
+                        <i class="fa fa-repeat"></i> Resend SMS
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>-->
+
+<style>
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    .badge-danger {
+        background-color: #dc3545;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    .badge-warning {
+        background-color: #ffc107;
+        color: #333;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 3px;
+    }
+    .sms-message {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        font-family: monospace;
+        font-size: 14px;
+    }
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+    }
+      #smslog  .table thead th {
+            position: sticky;
+            top: 0;
+            background-color: #fff;
+            z-index: 1;
+        }
+</style>
+</div>
+

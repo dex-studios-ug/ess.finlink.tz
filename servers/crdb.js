@@ -1,6 +1,5 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
+
 const path = require('path');
 const sha1 = require('sha1');
 const md5 = require('md5');
@@ -13,8 +12,8 @@ const { v4: uuidv4 } = require('uuid');
 
 
 require('dotenv').config();
-const app = express();
-const PORT = process.env.CRDB_PORT;
+const app = express.Router();
+/*const PORT = process.env.CRDB_PORT;
 console.log(PORT)
 
 // Middleware
@@ -34,199 +33,8 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
+*/
 
-// Database setup
-let db;
-
-async function initializeDatabase() {
-  db = await open({
-    filename: path.join(__dirname, 'crdb_database.sqlite'),
-    driver: sqlite3.Database
-  });
-
-  await db.exec(`
-    -- System settings table
-    CREATE TABLE IF NOT EXISTS system_settings (
-      id INTEGER PRIMARY KEY CHECK (id = 1),
-      crdb_token TEXT,
-      token_expiry DATETIME,
-      partner_id TEXT,
-      partner_pass TEXT,
-      base_url TEXT,
-      updatedAt DATETIME,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    INSERT OR IGNORE INTO system_settings (id) VALUES (1);
-
-    -- Transactions table
-    CREATE TABLE IF NOT EXISTS transactions (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id TEXT UNIQUE NOT NULL,
-      transaction_type TEXT NOT NULL,
-      customer_mobile TEXT,
-      customer_account TEXT,
-      customer_name TEXT,
-      amount REAL NOT NULL,
-      currency TEXT DEFAULT 'TZS',
-      payment_reference TEXT,
-      payment_desc TEXT,
-      status INTEGER,
-      status_desc TEXT,
-      txn_reference TEXT,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME
-    );
-
-    -- Account lookups table
-    CREATE TABLE IF NOT EXISTS account_lookups (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id TEXT UNIQUE NOT NULL,
-      customer_account TEXT,
-      account_name TEXT,
-      status INTEGER,
-      status_desc TEXT,
-      txn_reference TEXT,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    -- USSD requests table
-    CREATE TABLE IF NOT EXISTS ussd_requests (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id TEXT UNIQUE NOT NULL,
-      customer_mobile TEXT,
-      amount REAL,
-      account_code TEXT,
-      payment_reference TEXT,
-      status INTEGER,
-      status_desc TEXT,
-      txn_reference TEXT,
-      transaction_date DATETIME,
-      transaction_channel TEXT,
-      customer_name TEXT,
-      completed_at DATETIME,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    -- Batches table
-    CREATE TABLE IF NOT EXISTS batches (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      batch_id TEXT UNIQUE NOT NULL,
-      batch_code TEXT,
-      batch_post_type TEXT,
-      batch_approval TEXT,
-      batch_account TEXT,
-      batch_sender TEXT,
-      batch_desc TEXT,
-      batch_currency TEXT DEFAULT 'TZS',
-      total_amount REAL,
-      status INTEGER,
-      status_desc TEXT,
-      txn_reference TEXT,
-      approval_status TEXT,
-      approval_receipt TEXT,
-      approved_by TEXT,
-      approved_at DATETIME,
-      completed_records INTEGER DEFAULT 0,
-      failed_records INTEGER DEFAULT 0,
-      completed_amount REAL DEFAULT 0,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME
-    );
-
-    -- Batch records table
-    CREATE TABLE IF NOT EXISTS batch_records (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      batch_id TEXT NOT NULL,
-      record_id TEXT UNIQUE NOT NULL,
-      account TEXT,
-      bic TEXT,
-      name TEXT,
-      reference TEXT,
-      sec_reference TEXT,
-      amount REAL,
-      currency TEXT DEFAULT 'TZS',
-      description TEXT,
-      status TEXT,
-      status_desc TEXT,
-      txn_reference TEXT,
-      completed_at DATETIME,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
-    );
-
-    -- Batch verifications table
-    CREATE TABLE IF NOT EXISTS batch_verifications (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id TEXT UNIQUE NOT NULL,
-      payment_reference TEXT,
-      customer_name TEXT,
-      customer_account TEXT,
-      total_amount REAL,
-      no_txns INTEGER,
-      payment_type TEXT,
-      currency TEXT,
-      status INTEGER,
-      status_desc TEXT,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    -- Batch records list table
-    CREATE TABLE IF NOT EXISTS batch_records_list (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      request_id TEXT,
-      payment_reference TEXT,
-      amount REAL,
-      reference TEXT,
-      receiver_name TEXT,
-      receiver_account TEXT,
-      receiver_bic TEXT,
-      charge TEXT,
-      status TEXT,
-      status_desc TEXT,
-      partner_id TEXT,
-      base_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    -- API logs table
-    CREATE TABLE IF NOT EXISTS api_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      endpoint TEXT,
-      method TEXT,
-      request_body TEXT,
-      response_body TEXT,
-      status_code INTEGER,
-      response_time INTEGER,
-      partner_id TEXT,
-      ip_address TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    -- Create indexes
-    CREATE INDEX IF NOT EXISTS idx_transactions_request_id ON transactions(request_id);
-    CREATE INDEX IF NOT EXISTS idx_transactions_customer_account ON transactions(customer_account);
-    CREATE INDEX IF NOT EXISTS idx_ussd_requests_request_id ON ussd_requests(request_id);
-    CREATE INDEX IF NOT EXISTS idx_batches_batch_id ON batches(batch_id);
-    CREATE INDEX IF NOT EXISTS idx_batch_records_batch_id ON batch_records(batch_id);
-    CREATE INDEX IF NOT EXISTS idx_api_logs_created_at ON api_logs(created_at);
-  `);
-
-  app.locals.db = db;
-  console.log('Database initialized successfully');
-}
 
 // Helper function to generate UUID without dashes
 function generateUUID() {
@@ -377,7 +185,7 @@ class CRDBController {
         baseURL
       ]);
       
-      await this.logAPICall(db, '/api/crdb/disbursement', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/disbursement', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -433,7 +241,7 @@ class CRDBController {
         requestID
       ]);
       
-      await this.logAPICall(db, '/api/crdb/transaction/status', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/transaction/status', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -490,7 +298,7 @@ class CRDBController {
         baseURL
       ]);
       
-      await this.logAPICall(db, '/api/crdb/account/details', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/account/details', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -536,7 +344,7 @@ class CRDBController {
         accountCode: accountCode,
         currency: currency,
         paymentReference: paymentReference || requestId,
-        callback: callback || `${req.protocol}://${req.get('host')}/api/crdb/ussd/callback`
+        callback: callback || `${req.protocol}://${req.get('host')}/ussd/callback`
       };
       
       const response = await REMOTE.post('/api/service/crdb', requestBody);
@@ -560,7 +368,7 @@ class CRDBController {
         baseURL
       ]);
       
-      await this.logAPICall(db, '/api/crdb/ussd/push', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/ussd/push', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -621,7 +429,7 @@ class CRDBController {
         callbackData.requestID
       ]);
       
-      await this.logAPICall(db, '/api/crdb/ussd/callback', 'POST', callbackData, { status: 200 }, 200, 0, partnerID, req.ip);
+      await this.logAPICall(db, '/ussd/callback', 'POST', callbackData, { status: 200 }, 200, 0, partnerID, req.ip);
       
       // Return required response format
       res.json({
@@ -687,7 +495,7 @@ class CRDBController {
         baseURL
       ]);
       
-      await this.logAPICall(db, '/api/crdb/batch/verify', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/batch/verify', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -750,7 +558,7 @@ class CRDBController {
         }
       }
       
-      await this.logAPICall(db, '/api/crdb/batch/list', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/batch/list', 'POST', req.body, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -810,7 +618,7 @@ class CRDBController {
         paymentReference
       ]);
       
-      await this.logAPICall(db, '/api/crdb/batch/approve', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/batch/approve', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -927,7 +735,7 @@ class CRDBController {
         ]);
       }
       
-      await this.logAPICall(db, '/api/crdb/batch', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
+      await this.logAPICall(db, '/batch', 'POST', requestBody, response.data, response.status, Date.now() - startTime, partnerId, req.ip);
       
       res.json(response.data);
     } catch (error) {
@@ -977,7 +785,7 @@ class CRDBController {
         batchID
       ]);
       
-      await this.logAPICall(db, '/api/crdb/batch/callback', 'POST', req.body, { status: 200 }, 200, 0, partnerID, req.ip);
+      await this.logAPICall(db, '/batch/callback', 'POST', req.body, { status: 200 }, 200, 0, partnerID, req.ip);
       
       // Return required response format
       res.json({
@@ -1186,24 +994,24 @@ const crdbController = new CRDBController();
 app.post('/health', crdbController.healthCheck.bind(crdbController));
 
 // Transaction endpoints
-app.post('/api/crdb/disbursement', crdbController.disbursementSingle.bind(crdbController));
-app.post('/api/crdb/transaction/status', crdbController.checkCRDBtransactionStatus.bind(crdbController));
-app.post('/api/crdb/transactions', crdbController.getTransactionHistory.bind(crdbController));
+app.post('/disbursement', crdbController.disbursementSingle.bind(crdbController));
+app.post('/transaction/status', crdbController.checkCRDBtransactionStatus.bind(crdbController));
+app.post('/transactions', crdbController.getTransactionHistory.bind(crdbController));
 
 // Account endpoints
-app.post('/api/crdb/account/details', crdbController.getCRDBAccountDetails.bind(crdbController));
+app.post('/account/details', crdbController.getCRDBAccountDetails.bind(crdbController));
 
 // USSD endpoints
-app.post('/api/crdb/ussd/push', crdbController.sendUssdPush.bind(crdbController));
-app.post('/api/crdb/ussd/callback', crdbController.getUssdPushCallback.bind(crdbController));
+app.post('/ussd/push', crdbController.sendUssdPush.bind(crdbController));
+app.post('/ussd/callback', crdbController.getUssdPushCallback.bind(crdbController));
 
 // Batch endpoints
-app.post('/api/crdb/batch', crdbController.postBatch.bind(crdbController));
-app.post('/api/crdb/batch/verify', crdbController.verifyBatch.bind(crdbController));
-app.post('/api/crdb/batch/list', crdbController.listBatchedDisbursement.bind(crdbController));
-app.post('/api/crdb/batch/approve', crdbController.approveBatch.bind(crdbController));
-app.post('/api/crdb/batch/callback', crdbController.batchTransactionCallback.bind(crdbController));
-app.post('/api/crdb/batch/status', crdbController.getBatchStatus.bind(crdbController));
+app.post('/batch', crdbController.postBatch.bind(crdbController));
+app.post('/batch/verify', crdbController.verifyBatch.bind(crdbController));
+app.post('/batch/list', crdbController.listBatchedDisbursement.bind(crdbController));
+app.post('/batch/approve', crdbController.approveBatch.bind(crdbController));
+app.post('/batch/callback', crdbController.batchTransactionCallback.bind(crdbController));
+app.post('/batch/status', crdbController.getBatchStatus.bind(crdbController));
 
 // Database inspector
 app.post('/api/database/table', crdbController.getTableData.bind(crdbController));
@@ -1211,7 +1019,7 @@ app.post('/api/database/table', crdbController.getTableData.bind(crdbController)
 // Logs endpoint
 app.post('/api/logs', crdbController.getAPILogs.bind(crdbController));
 
-// Error handling middleware
+/*/ Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
   res.status(err.status || 500).json({
@@ -1236,7 +1044,7 @@ async function startServer() {
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/health (POST)`);
-      console.log(`API endpoints available at /api/crdb/*`);
+      console.log(`API endpoints available at /*`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);
@@ -1245,5 +1053,6 @@ async function startServer() {
 }
 
 startServer();
-
-module.exports = app;
+*/
+let crdb_router = app;
+module.exports = {crdb_router};

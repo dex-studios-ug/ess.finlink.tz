@@ -1,0 +1,76 @@
+
+
+<div class="kpi-stats center text-center" style=" margin:   30px;padding:   30px;">
+<h1 class=" h1"> <u>   Key Performance Indicators (kpi) Summary</u></h1>
+  <div class="kpi-kpicards">
+          <div class="kpicard kpitooltip">
+            <h3>Messages Sent Today</h3>
+            <p>{{sent_today | number}}</p>
+            <span class="kpitooltiptext">Total messages successfully sent today.</span>
+          </div>
+          <div class="kpicard kpitooltip">
+            <h3>Delivery Rate</h3>
+            <p>{{deliverrate}}%</p>
+            <span class="kpitooltiptext">Percentage of messages successfully delivered.</span>
+          </div>
+          <div class="kpicard kpitooltip">
+            <h3>Active Campaigns</h3>
+            <p>{{campains_no | number}}</p>
+            <span class="kpitooltiptext">Campaigns currently running.</span>
+          </div>
+          <div class="kpicard kpitooltip">
+            <h3>Volume Left</h3>
+            <p>{{volume_balance | number}}</p>
+            <span class="kpitooltiptext">Available SMS credits.</span>
+          </div>
+        </div>
+        <style type="text/css">
+       .kpi-stats .kpicard {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 1rem;
+    }
+  .kpi-stats    .kpi-kpicards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .kpi-stats  .kpicard h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #6b7280;
+    }
+   .kpi-stats   .kpicard p {
+      margin: 0.25rem 0 0;
+      font-size: 24px;
+      font-weight: 600;
+    }
+   .kpi-stats    .kpitooltip {
+      position: relative;
+      display: inline-block;
+      cursor: pointer;
+    }
+    .kpitooltip .kpitooltiptext {
+      visibility: hidden;
+      width: 140px;
+      background-color: #555;
+      color: #fff;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -70px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+  .kpi-stats    .kpitooltip:hover .kpitooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+        </style>
+      </div>

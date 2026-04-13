@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-
+const express = require('express');
 // JWT Secret - In production, use environment variable
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 const JWT_EXPIRES_IN = '1h'; // 1 hour
@@ -104,6 +104,24 @@ const requireAdmin = (req, res, next) => {
 const generateSecureToken = (length = 32) => {
     return crypto.randomBytes(length).toString('hex');
 };
+const auth_router = express.Router();
+
+auth_router.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    // In production, fetch user from database
+    if (username === 'admin' && password === 'password') {
+        const token = generateToken({ username: 'admin', role: 'admin' });
+        return res.json({
+            success: true,
+            token
+        });
+    } else {
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid username or password'
+        });
+    }
+});
 
 module.exports = {
     generateToken,
@@ -114,5 +132,6 @@ module.exports = {
     requireAdmin,
     generateSecureToken,
     JWT_SECRET,
-    JWT_EXPIRES_IN
+    JWT_EXPIRES_IN,
+    auth_router
 };

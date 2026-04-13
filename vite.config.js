@@ -21,8 +21,8 @@ export default defineConfig({
    build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        crdb: resolve(__dirname, 'crdb.html'),
+        main: resolve(__dirname, 'ui/ess.html'),
+        crdb: resolve(__dirname, 'ui/crdb.html'),
        
       },
     },

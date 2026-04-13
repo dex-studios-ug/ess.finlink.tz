@@ -1,0 +1,15 @@
+{
+    "files":[
+        "http://localhost:3000/js/messages.js",
+            "http://localhost:3000/js/2fa.js",
+           "http://localhost:3000/js/interceptors.js",
+            "http://localhost:3000/js/avoucher.js",
+            "http://localhost:3000/js/init.js",
+            "http://localhost:3000/js/router.js",
+            "http://localhost:3000/js/loandetailsctrl.js",
+            "http://localhost:3000/js/loanactionsctrl.js",
+            "http://localhost:3000/js/campaigns.js",
+            "http://localhost:3000/js/notifications.js",
+            "http://localhost:3000/js/settings.js"
+    ]
+}

@@ -1,0 +1,14 @@
+<div class="center" style="padding:5px;"><h1 class="text-center" style="padding:10px;">Add numbers for system users <button ng-click="updateall()"
+                class="btn btn-primary pull-right">UPDATE ALL</button></h1>
+                <div style="padding:30px;">
+                <div>
+                <span ng-bind="updatemessage"></span>
+                </div>
+               <div ng-repeat="user in users">
+                <div><label for="number">{{user.username}}'s phone number</label><button ng-click="update(user)"
+                class="pill btn-primary">UPDATE</button>
+                <br>
+                <input type="text" id="number" ng-model="user.mobileNo" ng-change="userDirty(user)"></div>
+                </div> 
+                </div>
+                </div>
