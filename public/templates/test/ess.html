@@ -1,0 +1,791 @@
+<div class="content-container ng-scope" ng-controller="ESSViewCtrl">
+    <ul class="breadcrumb">
+        <li class="active ng-binding">ESS Integration Monitor</li>
+    </ul>
+    
+    <api-validate>
+        <div class="alert ng-isolate-scope alert-danger ng-hide" ng-class="['alert-' + (type || 'warning'), closeable ? 'alert-dismissible' : null]" role="alert" uib-alert="" type="danger" ng-show="errorStatus || errorDetails.length &gt; 0">
+            <button ng-show="closeable" type="button" class="close ng-hide" ng-click="close({$event: $event})">
+                <span aria-hidden="true">×</span>
+                <span class="sr-only">Close</span>
+            </button>
+            <div ng-xtransclude=""></div>
+        </div>
+    </api-validate>
+
+    <!-- Tabs -->
+    <div class="card">
+        <div class="toolbar">
+            <h4>
+                <i class="fa fa-exchange"></i> ESS Integration Hub
+                <small>e-MKOPO FSP Bridge</small>
+                <button class="btn btn-sm btn-primary pull-right" ng-click="refresh()">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button>
+                <a href="#/viewessportal">
+                    <button class="btn btn-sm btn-info pull-right" style="margin-right: 5px;">
+                        <i class="fa fa-external-link"></i> Go to Portal
+                    </button>
+                </a>
+            </h4>
+        </div>
+        
+        <!-- Tab Headers -->
+        <div class="tab-headers" style="border-bottom: 1px solid #dee2e6; padding: 0 20px;">
+            <ul class="nav nav-tabs" style="margin-bottom: -1px;">
+                <li ng-class="{active: activeTab === 'logs'}">
+                    <a href="#" ng-click="activeTab = 'logs'; loadESSLogs();">
+                        <i class="fa fa-list-alt"></i> Transaction Logs
+                        <span class="badge" ng-if="stats.total">{{stats.total}}</span>
+                    </a>
+                </li>
+                <li ng-class="{active: activeTab === 'loans'}">
+                    <a href="#" ng-click="activeTab = 'loans'; loadActiveLoans();">
+                        <i class="fa fa-credit-card"></i> Active Loans
+                        <span class="badge" ng-if="activeLoans.length">{{activeLoans.length}}</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="content">
+            <!-- ==================== TAB 1: TRANSACTION LOGS ==================== -->
+            <div ng-show="activeTab === 'logs'">
+                <br>
+                <!-- Statistics Cards -->
+                <div class="row">
+                    <div class="col-md-2">
+                        <div class="card text-center bg-primary">
+                            <div class="card-body">
+                                <div class="stat-number">{{stats.total || 0}}</div>
+                                <div class="stat-label">Total Messages</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center bg-success">
+                            <div class="card-body">
+                                <div class="stat-number">{{stats.success || 0}}</div>
+                                <div class="stat-label">Successful</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center bg-danger">
+                            <div class="card-body">
+                                <div class="stat-number">{{stats.failed || 0}}</div>
+                                <div class="stat-label">Failed</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center bg-warning">
+                            <div class="card-body">
+                                <div class="stat-number">{{stats.pending || 0}}</div>
+                                <div class="stat-label">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center bg-info">
+                            <div class="card-body">
+                                <div class="stat-number">{{stats.inbound || 0}}</div>
+                                <div class="stat-label">Inbound</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card text-center bg-secondary">
+                            <div class="card-body">
+                                <div class="stat-number">{{stats.outbound || 0}}</div>
+                                <div class="stat-label">Outbound</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Section -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fa fa-filter"></i> Filters
+                                <button class="btn btn-sm btn-default pull-right" ng-click="resetFilters()">
+                                    <i class="fa fa-refresh"></i> Reset
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>Search</label>
+                                            <input type="text" class="form-control" ng-model="searchText" 
+                                                   placeholder="Search by ID, Application #, Loan #, Client..."
+                                                   ng-model-options="{debounce: 500}" ng-change="applyFilters()">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label>Message Type</label>
+                                            <select class="form-control chosen-select" ng-model="selectedMessageType" ng-change="applyFilters()" data-placeholder="All">
+                                                <option value="">All</option>
+                                                <option ng-repeat="type in messageTypeOptions" value="{{type}}">{{type}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label>Direction</label>
+                                            <select class="form-control" ng-model="selectedDirection" ng-change="applyFilters()">
+                                                <option value="">All</option>
+                                                <option ng-repeat="dir in directionOptions" value="{{dir}}">{{dir}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label>Status</label>
+                                            <select class="form-control" ng-model="selectedStatus" ng-change="applyFilters()">
+                                                <option value="">All</option>
+                                                <option ng-repeat="status in statusOptions" value="{{status}}">{{status}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>Date Range</label>
+                                            <div class="input-group">
+                                                <input type="date" class="form-control" ng-model="dateFrom" placeholder="From" ng-change="applyFilters()">
+                                                <span class="input-group-addon">to</span>
+                                                <input type="date" class="form-control" ng-model="dateTo" placeholder="To" ng-change="applyFilters()">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Bar -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-danger btn-sm" ng-click="bulkDelete()" ng-disabled="!anySelected()">
+                            <i class="fa fa-trash"></i> Delete Selected
+                        </button>
+                        <button class="btn btn-success btn-sm" ng-click="exportToCSV()" style="margin-left: 5px;">
+                            <i class="fa fa-download"></i> Export to CSV
+                        </button>
+                    </div>
+                    <div class="col-md-6 text-right">
+                        <span class="text-muted">Total: {{totalItems}} records</span>
+                    </div>
+                </div>
+                
+                <!-- ESS Logs Table -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th width="30">
+                                            <input type="checkbox" ng-model="allSelected" ng-change="selectAll()">
+                                        </th>
+                                        <th>ID</th>
+                                        <th>Message Type</th>
+                                        <th>Direction</th>
+                                        <th>Status</th>
+                                        <th>Application #</th>
+                                        <th>Loan #</th>
+                                        <th>Client</th>
+                                        <th>Created At</th>
+                                        <th width="100">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="log in essLogs" ng-class="{'danger': log.status == 'FAILED', 'warning': log.status == 'PENDING'}">
+                                        <td>
+                                            <input type="checkbox" ng-model="log.selected">
+                                        </td>
+                                        <td>{{log.id}}</td>
+                                        <td>
+                                            <span class="label label-info" style="font-size: 11px; white-space: normal; word-break: break-word; display: inline-block; max-width: 200px;">
+                                                {{log.message_type}}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="label {{getDirectionClass(log.direction)}}">
+                                                {{log.direction}}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="label {{getStatusClass(log.status)}}">{{log.status}}</span>
+                                            <span ng-if="log.retry_count > 0" class="label label-default" title="Retry count">
+                                                R:{{log.retry_count}}
+                                            </span>
+                                        </td>
+                                        <td>{{log.application_number || '-'}}</td>
+                                        <td>{{log.loan_number || '-'}}</td>
+                                        <td>
+                                            <small>{{log.client_name || '-'}}<br>
+                                            <span class="text-muted">{{log.client_id || '-'}}</span></small>
+                                        </td>
+                                        <td>{{log.created_at | date:'yyyy-MM-dd HH:mm:ss'}}</td>
+                                        <td>
+                                            <button class="btn btn-xs btn-primary" ng-click="viewDetails(log)" title="View Details">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                            <button class="btn btn-xs btn-warning" ng-click="resendToESS(log)" 
+                                                    ng-disabled="resendingId == log.id" title="Resend to ESS">
+                                                <i class="fa fa-repeat" ng-class="{'fa-spin': resendingId == log.id}"></i>
+                                            </button>
+                                            <button class="btn btn-xs btn-danger" ng-click="deleteLog(log)" title="Delete">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr ng-show="!loading && essLogs.length === 0">
+                                        <td colspan="10" class="text-center text-muted">
+                                            <i class="fa fa-inbox fa-2x"></i>
+                                            <p>No ESS logs found</p>
+                                        </td>
+                                    </tr>
+                                    <tr ng-show="loading">
+                                        <td colspan="10" class="text-center">
+                                            <i class="fa fa-spinner fa-spin fa-2x"></i>
+                                            <p>Loading...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="row" ng-show="totalItems > pageSize">
+                    <div class="col-md-12 text-center">
+                        <ul uib-pagination total-items="totalItems" 
+                            ng-model="currentPage" 
+                            ng-change="pageChanged()"
+                            items-per-page="pageSize"
+                            max-size="5"
+                            boundary-links="true"
+                            class="pagination-sm">
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ==================== TAB 2: ACTIVE LOANS ==================== -->
+            <div ng-show="activeTab === 'loans'">
+                <br>
+                <!-- Loan Statistics -->
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card text-center bg-primary">
+                            <div class="card-body">
+                                <div class="stat-number">{{loanStats.total || 0}}</div>
+                                <div class="stat-label">Total Loans</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-success">
+                            <div class="card-body">
+                                <div class="stat-number">{{loanStats.active || 0}}</div>
+                                <div class="stat-label">Active</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-warning">
+                            <div class="card-body">
+                                <div class="stat-number">{{loanStats.overdue || 0}}</div>
+                                <div class="stat-label">Overdue</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center bg-info">
+                            <div class="card-body">
+                                <div class="stat-number">{{loanStats.totalOutstanding | number:0}}</div>
+                                <div class="stat-label">Total Outstanding</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loan Filter -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fa fa-filter"></i> Loan Filters
+                                <button class="btn btn-sm btn-default pull-right" ng-click="resetLoanFilters()">
+                                    <i class="fa fa-refresh"></i> Reset
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label>Search</label>
+                                            <input type="text" class="form-control" ng-model="loanSearchText" 
+                                                   placeholder="Search by Loan #, Client, Application #..."
+                                                   ng-model-options="{debounce: 500}" ng-change="filterLoans()">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>Status</label>
+                                            <select class="form-control" ng-model="loanStatusFilter" ng-change="filterLoans()">
+                                                <option value="">All</option>
+                                                <option value="ACTIVE">Active</option>
+                                                <option value="OVERDUE">Overdue</option>
+                                                <option value="COMPLETED">Completed</option>
+                                                <option value="CANCELLED">Cancelled</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>Product</label>
+                                            <select class="form-control chosen-select" ng-model="productFilter" ng-change="filterLoans()" data-placeholder="All Products">
+                                                <option value="">All Products</option>
+                                                <option ng-repeat="product in loanProducts" value="{{product.code}}">{{product.name}}</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label>&nbsp;</label>
+                                            <button class="btn btn-primary btn-block" ng-click="refreshLoans()">
+                                                <i class="fa fa-refresh"></i> Refresh
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Loans Table -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-condensed">
+                                <thead>
+                                    <tr>
+                                        <th>Loan #</th>
+                                        <th>Application #</th>
+                                        <th>Client Name</th>
+                                        <th>Product</th>
+                                        <th>Principal</th>
+                                        <th>Outstanding</th>
+                                        <th>Status</th>
+                                        <th>Disbursement Date</th>
+                                        <th>Maturity Date</th>
+                                        <th width="180">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr ng-repeat="loan in filteredLoans" ng-class="{'warning': loan.status === 'OVERDUE'}">
+                                        <td><strong>{{loan.loanNumber || loan.id}}</strong></td>
+                                        <td>{{loan.applicationNumber || '-'}}</td>
+                                        <td>{{loan.clientName}}<br><small class="text-muted">{{loan.clientId}}</small></td>
+                                        <td>{{loan.productName || loan.productCode}}</td>
+                                        <td class="text-right">{{loan.principal | number:2}}</td>
+                                        <td class="text-right"><strong>{{loan.outstandingBalance | number:2}}</strong></td>
+                                        <td>
+                                            <span class="label {{loan.status === 'ACTIVE' ? 'label-success' : (loan.status === 'OVERDUE' ? 'label-danger' : 'label-default')}}">
+                                                {{loan.status}}
+                                            </span>
+                                        </td>
+                                        <td>{{loan.disbursementDate | date:'yyyy-MM-dd'}}</td>
+                                        <td>{{loan.maturityDate | date:'yyyy-MM-dd'}}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-xs">
+                                                <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                                                    Actions <span class="caret"></span>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a href="#" ng-click="viewLoanDetails(loan)"><i class="fa fa-info-circle"></i> View Details</a></li>
+                                                    <li class="divider"></li>
+                                                    <li><a href="#" ng-click="getLoanBalance(loan)"><i class="fa fa-calculator"></i> Get Balance</a></li>
+                                                    <li><a href="#" ng-click="makeRepayment(loan)"><i class="fa fa-money"></i> Make Repayment</a></li>
+                                                    <li class="divider"></li>
+                                                    <li><a href="#" ng-click="restructureLoan(loan)"><i class="fa fa-refresh"></i> Restructure Loan</a></li>
+                                                    <li><a href="#" ng-click="processTopUp(loan)"><i class="fa fa-plus-circle"></i> Process Top-up</a></li>
+                                                    <li class="divider"></li>
+                                                    <li><a href="#" ng-click="initiateTakeover(loan)"><i class="fa fa-exchange"></i> Initiate Takeover</a></li>
+                                                    <li><a href="#" ng-click="cancelLoan(loan)" ng-if="loan.status === 'PENDING'"><i class="fa fa-ban"></i> Cancel Loan</a></li>
+                                                    <li class="divider"></li>
+                                                    <li><a href="#" ng-click="viewTransactionHistory(loan)"><i class="fa fa-history"></i> Transaction History</a></li>
+                                                    <li><a href="#" ng-click="downloadLoanStatement(loan)"><i class="fa fa-file-pdf-o"></i> Download Statement</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr ng-show="!loansLoading && filteredLoans.length === 0">
+                                        <td colspan="10" class="text-center text-muted">
+                                            <i class="fa fa-inbox fa-2x"></i>
+                                            <p>No active loans found</p>
+                                        </td>
+                                    </tr>
+                                    <tr ng-show="loansLoading">
+                                        <td colspan="10" class="text-center">
+                                            <i class="fa fa-spinner fa-spin fa-2x"></i>
+                                            <p>Loading loans...</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ==================== MODALS ==================== -->
+    
+    <!-- ESS Details Modal -->
+    <div class="modal fade" id="essDetailsModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-envelope"></i> ESS Message Details</h4>
+                </div>
+                <div class="modal-body" ng-if="selectedLog">
+                    <ul class="nav nav-tabs">
+                        <li class="active"><a href="#msgInfo" data-toggle="tab">Information</a></li>
+                        <li><a href="#requestPayload" data-toggle="tab">Request Payload</a></li>
+                        <li><a href="#responsePayload" data-toggle="tab">Response Payload</a></li>
+                        <li ng-if="selectedLog.error_message"><a href="#errorMsg" data-toggle="tab">Error</a></li>
+                    </ul>
+                    <div class="tab-content" style="padding-top: 15px;">
+                        <div id="msgInfo" class="tab-pane active">
+                            <table class="table table-condensed">
+                                <tr><td width="150"><strong>ID:</strong></td><td>{{selectedLog.id}}</td></tr>
+                                <tr><td><strong>Message ID:</strong></td><td>{{selectedLog.message_id}}</td></tr>
+                                <tr><td><strong>Message Type:</strong></td><td><span class="label label-info">{{selectedLog.message_type}}</span></td></tr>
+                                <tr><td><strong>Direction:</strong></td><td><span class="label {{getDirectionClass(selectedLog.direction)}}">{{selectedLog.direction}}</span></td></tr>
+                                <tr><td><strong>Status:</strong></td><td><span class="label {{getStatusClass(selectedLog.status)}}">{{selectedLog.status}}</span></td></tr>
+                                <tr><td><strong>Application Number:</strong></td><td>{{selectedLog.application_number || '-'}}</td></tr>
+                                <tr><td><strong>Loan Number:</strong></td><td>{{selectedLog.loan_number || '-'}}</td></tr>
+                                <tr><td><strong>Client:</strong></td><td>{{selectedLog.client_name}} ({{selectedLog.client_id}})</td></tr>
+                                <tr><td><strong>FSP Code:</strong></td><td>{{selectedLog.fsp_code || '-'}}</td></tr>
+                                <tr><td><strong>Created At:</strong></td><td>{{selectedLog.created_at | date:'yyyy-MM-dd HH:mm:ss'}}</td></tr>
+                                <tr><td><strong>Processing Time:</strong></td><td>{{selectedLog.processing_time_ms}} ms</td></tr>
+                            </table>
+                        </div>
+                        <div id="requestPayload" class="tab-pane">
+                            <pre class="pre-scrollable">{{selectedLog.formattedRequest || selectedLog.request_payload}}</pre>
+                        </div>
+                        <div id="responsePayload" class="tab-pane">
+                            <pre class="pre-scrollable">{{selectedLog.formattedResponse || selectedLog.response_payload || 'No response payload'}}</pre>
+                        </div>
+                        <div id="errorMsg" class="tab-pane" ng-if="selectedLog.error_message">
+                            <pre class="pre-scrollable text-danger">{{selectedLog.error_message}}</pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" ng-click="resendToESS(selectedLog)" data-dismiss="modal">
+                        <i class="fa fa-repeat"></i> Resend to ESS
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loan Details Modal -->
+    <div class="modal fade" id="loanDetailsModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-credit-card"></i> Loan Details: {{selectedLoan.loanNumber}}</h4>
+                </div>
+                <div class="modal-body" ng-if="selectedLoan">
+                    <div ng-if="loanDetailsLoading" class="text-center">
+                        <i class="fa fa-spinner fa-spin fa-2x"></i> Loading loan details...
+                    </div>
+                    <div ng-if="!loanDetailsLoading && loanDetails">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-condensed">
+                                    <tr><td width="150"><strong>Loan Number:</strong></td><td>{{loanDetails.id}}</td></tr>
+                                    <tr><td><strong>Application Number:</strong></td><td>{{loanDetails.externalId || selectedLoan.applicationNumber}}</td></tr>
+                                    <tr><td><strong>Client:</strong></td><td>{{loanDetails.clientName}} ({{loanDetails.clientId}})</td></tr>
+                                    <tr><td><strong>Product:</strong></td><td>{{loanDetails.productName}}</td></tr>
+                                    <tr><td><strong>Principal:</strong></td><td class="text-right">{{loanDetails.principal | number:2}}</td></tr>
+                                    <tr><td><strong>Interest Rate:</strong></td><td>{{loanDetails.interestRatePerPeriod}}%</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-condensed">
+                                    <tr><td width="150"><strong>Outstanding Balance:</strong></td><td class="text-right"><strong>{{loanDetails.outstandingBalance | number:2}}</strong></td></tr>
+                                    <tr><td><strong>Total Paid:</strong></td><td class="text-right">{{loanDetails.totalPaid | number:2}}</td></tr>
+                                    <tr><td><strong>Status:</strong></td><td><span class="label label-success">{{loanDetails.status}}</span></td></tr>
+                                    <tr><td><strong>Disbursement Date:</strong></td><td>{{loanDetails.disbursementDate | date:'yyyy-MM-dd'}}</td></tr>
+                                    <tr><td><strong>Maturity Date:</strong></td><td>{{loanDetails.maturityDate | date:'yyyy-MM-dd'}}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Repayment Schedule -->
+                        <div ng-if="loanDetails.repaymentSchedule">
+                            <h5>Repayment Schedule</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-condensed">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Due Date</th>
+                                            <th>Total Due</th>
+                                            <th>Principal Due</th>
+                                            <th>Interest Due</th>
+                                            <th>Balance</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr ng-repeat="period in loanDetails.repaymentSchedule">
+                                            <td>{{period.period}}</td>
+                                            <td>{{period.dueDate | date:'yyyy-MM-dd'}}</td>
+                                            <td class="text-right">{{period.totalDue | number:2}}</td>
+                                            <td class="text-right">{{period.principalDue | number:2}}</td>
+                                            <td class="text-right">{{period.interestDue | number:2}}</td>
+                                            <td class="text-right">{{period.balance | number:2}}</td>
+                                            <td>
+                                                <span class="label label-success" ng-if="period.paid">Paid</span>
+                                                <span class="label label-warning" ng-if="!period.paid && period.overdue">Overdue</span>
+                                                <span class="label label-default" ng-if="!period.paid && !period.overdue">Pending</span>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" ng-click="makeRepayment(selectedLoan)" data-dismiss="modal">
+                        <i class="fa fa-money"></i> Make Repayment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Repayment Modal -->
+    <div class="modal fade" id="repaymentModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-money"></i> Make Repayment</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Loan:</strong> {{repaymentLoan.loanNumber}}<br>
+                        <strong>Client:</strong> {{repaymentLoan.clientName}}<br>
+                        <strong>Outstanding Balance:</strong> {{repaymentLoan.outstandingBalance | number:2}}
+                    </div>
+                    <form name="repaymentForm">
+                        <div class="form-group">
+                            <label>Payment Amount *</label>
+                            <input type="number" class="form-control" ng-model="repaymentAmount" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Date</label>
+                            <input type="date" class="form-control" ng-model="repaymentDate">
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select class="form-control" ng-model="paymentMethod">
+                                <option value="SALARY_DEDUCTION">Salary Deduction</option>
+                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                <option value="MNO">Mobile Money</option>
+                                <option value="CASH">Cash</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea class="form-control" ng-model="repaymentNotes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" ng-click="submitRepayment()" ng-disabled="repaymentSubmitting">
+                        <i class="fa" ng-class="{'fa-spinner fa-spin': repaymentSubmitting, 'fa-check': !repaymentSubmitting}"></i>
+                        Process Repayment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Restructure Modal -->
+    <div class="modal fade" id="restructureModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-refresh"></i> Restructure Loan</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <strong>Loan:</strong> {{restructureLoan.loanNumber}}<br>
+                        <strong>Outstanding Balance:</strong> {{restructureLoan.outstandingBalance | number:2}}
+                    </div>
+                    <form name="restructureForm">
+                        <div class="form-group">
+                            <label>New Tenure (Months) *</label>
+                            <input type="number" class="form-control" ng-model="newTenure" required>
+                        </div>
+                        <div class="form-group">
+                            <label>New Installment Amount *</label>
+                            <input type="number" class="form-control" ng-model="newInstallmentAmount" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Restructure Reason *</label>
+                            <textarea class="form-control" ng-model="restructureReason" rows="3" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" ng-click="submitRestructure()" ng-disabled="restructureSubmitting">
+                        <i class="fa" ng-class="{'fa-spinner fa-spin': restructureSubmitting, 'fa-refresh': !restructureSubmitting}"></i>
+                        Submit Restructure Request
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top-up Modal -->
+    <div class="modal fade" id="topupModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                    <h4 class="modal-title"><i class="fa fa-plus-circle"></i> Process Top-up</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Existing Loan:</strong> {{topupLoan.loanNumber}}<br>
+                        <strong>Client:</strong> {{topupLoan.clientName}}
+                    </div>
+                    <form name="topupForm">
+                        <div class="form-group">
+                            <label>Requested Amount *</label>
+                            <input type="number" class="form-control" ng-model="topupAmount" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Product Code</label>
+                            <select class="form-control" ng-model="topupProductCode">
+                                <option ng-repeat="product in loanProducts" value="{{product.code}}">{{product.name}}</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Settlement Amount (Optional)</label>
+                            <input type="number" class="form-control" ng-model="settlementAmount">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" ng-click="submitTopup()" ng-disabled="topupSubmitting">
+                        <i class="fa" ng-class="{'fa-spinner fa-spin': topupSubmitting, 'fa-plus-circle': !topupSubmitting}"></i>
+                        Process Top-up
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CSS Styles -->
+    <style>
+        .content-container {
+            padding: 15px;
+        }
+        .breadcrumb {
+            margin-bottom: 15px;
+        }
+        .card {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .toolbar {
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            background: #f8f9fa;
+            border-radius: 4px 4px 0 0;
+        }
+        .toolbar h4 {
+            margin: 0;
+            color: #333;
+        }
+        .toolbar small {
+            color: #666;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .content {
+            padding: 20px;
+        }
+        .card-header {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: bold;
+        }
+        .card-body {
+            padding: 15px;
+        }
+        .stat-number {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .bg-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .bg-success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); color: white; }
+        .bg-danger { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
+        .bg-warning { background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); color: white; }
+        .bg-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .bg-secondary { background: linear-gradient(135deg, #868f96 0%, #596164 100%); color: white; }
+        .label { padding: 3px 8px; font-size: 11px; }
+        .label-success { background-color: #5cb85c; }
+        .label-danger { background-color: #d9534f; }
+        .label-warning { background-color: #f0ad4e; }
+        .label-info { background-color: #5bc0de; }
+        .label-primary { background-color: #337ab7; }
+        .label-default { background-color: #777; }
+        .pre-scrollable { max-height: 300px; overflow-y: auto; }
+        .btn-group-xs > .btn { padding: 1px 5px; font-size: 11px; }
+        .table-condensed > tbody > tr > td, .table-condensed > thead > tr > th { padding: 5px; }
+        .nav-tabs { margin-bottom: 0; }
+        .tab-pane { padding: 15px 0; }
+        .text-right { text-align: right; }
+        tr.warning { background-color: #fcf8e3; }
+        tr.danger { background-color: #f2dede; }
+        .dropdown-menu > li > a { cursor: pointer; }
+        .dropdown-menu > li > a:hover { background-color: #f5f5f5; }
+    </style>
+</div>

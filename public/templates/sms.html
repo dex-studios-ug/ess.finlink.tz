@@ -1,14 +1,29 @@
-<div class="whitebg  card" id="smslog" ng-controller="SMSViewCtrl" style="padding: 20px;">
-    <!-- Page Header -->
-    <div class="row">
-        
-            <h4 class="text-center">
-                <i class="fa fa-envelope"></i> SMS Notifications
-                
-            </h4>
-    
-    </div>
-    
+
+
+    <div class="content-container ng-scope" ng-controller="SMSViewCtrl">
+    <ul class="breadcrumb">
+        <li class="active ng-binding">SMS</li>
+    </ul>
+    <api-validate><div class="alert ng-isolate-scope alert-danger ng-hide" ng-class="['alert-' + (type || 'warning'), closeable ? 'alert-dismissible' : null]" role="alert" uib-alert="" type="danger" ng-show="errorStatus || errorDetails.length &gt; 0">
+    <button ng-show="closeable" type="button" class="close ng-hide" ng-click="close({$event: $event})">
+        <span aria-hidden="true">×</span>
+        <span class="sr-only">Close</span>
+    </button>
+    <div ng-xtransclude=""><!-- ngRepeat: errorArray in errorDetails --></div>
+</div></api-validate>
+
+    <div class="card">
+        <div class="toolbar">
+            <h4><i class="fa fa-credit-card"></i> SMS Transaction Logs
+                <small>SMS Integration - Transaction Monitoring</small>
+                <button class="btn btn-sm btn-primary pull-right" ng-click="refresh()">
+                    <i class="fa fa-refresh"></i> Refresh
+                </button><a href="#/viewsmsportal"><button class="btn btn-sm btn-primary pull-right" >
+                    <i class="fa fa-refresh"></i> Go to Portal
+                </button></a></h4>
+        </div>
+<div class="content">
+            <br>
 
     <!-- Filter Section -->
     <div class="row">
@@ -16,7 +31,7 @@
             <div class="">
                 <div class="">
                     <i class="fa fa-filter"></i> Filters
-                    <button class="btn btn-sm btn-secondary float-right" ng-click="resetFilters()">
+                    <button class="btn btn-sm btn-secondary pull-right" ng-click="resetFilters()">
                         <i class="fa fa-refresh"></i> Reset
                     </button>
                 </div>
@@ -325,5 +340,7 @@
             z-index: 1;
         }
 </style>
+</div>
+</div>
 </div>
 

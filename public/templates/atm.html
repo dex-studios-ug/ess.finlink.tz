@@ -1,19 +1,29 @@
-<div class="card whitebg well ng-scope px-2 container-fluid" ng-controller="ATMViewCtrl">
-    <!-- Page Header -->
-    <div class="row">
-        <div class="">
-            <h2 class="">
-                <i class="fa fa-credit-card"></i> ATM Transaction Logs
+
+
+    <div class="content-container ng-scope" ng-controller="ATMViewCtrl">
+    <ul class="breadcrumb">
+        <li class="active ng-binding">ATM</li>
+    </ul>
+    <api-validate><div class="alert ng-isolate-scope alert-danger ng-hide" ng-class="['alert-' + (type || 'warning'), closeable ? 'alert-dismissible' : null]" role="alert" uib-alert="" type="danger" ng-show="errorStatus || errorDetails.length &gt; 0">
+    <button ng-show="closeable" type="button" class="close ng-hide" ng-click="close({$event: $event})">
+        <span aria-hidden="true">×</span>
+        <span class="sr-only">Close</span>
+    </button>
+    <div ng-xtransclude=""><!-- ngRepeat: errorArray in errorDetails --></div>
+</div></api-validate>
+
+    <div class="card">
+        <div class="toolbar">
+            <h4><i class="fa fa-credit-card"></i> ATM Transaction Logs
                 <small>ATM Integration - Transaction Monitoring</small>
-                <button class="btn btn-sm btn-primary float-right" ng-click="refresh()">
+                <button class="btn btn-sm btn-primary pull-right" ng-click="refresh()">
                     <i class="fa fa-refresh"></i> Refresh
-                </button><a href="#/viewatmportal"><button class="btn btn-sm btn-primary float-right" >
+                </button><a href="#/viewatmportal"><button class="btn btn-sm btn-primary pull-right" >
                     <i class="fa fa-refresh"></i> Go to Portal
-                </button></a>
-                
-            </h2>
+                </button></a></h4>
         </div>
-    </div>
+        <div class="content card">
+            <br>
     
     <!-- Statistics Cards -->
     <div class="row ">
@@ -67,36 +77,13 @@
         </div>
     </div>
     
-    <!-- Alert Messages -->
-    <div class="row" ng-show="successMessage">
-        <div class="">
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <i class="fa fa-check-circle"></i> {{successMessage}}
-                <button type="button" class="close" ng-click="successMessage=null">
-                    <span>&times;</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <div class="row" ng-show="errorMessage">
-        <div class="">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <i class="fa fa-exclamation-circle"></i> {{errorMessage}}
-                <button type="button" class="close" ng-click="errorMessage=null">
-                    <span>&times;</span>
-                </button>
-            </div>
-        </div>
-    </div>
-    
     <!-- Filter Section -->
     <div class="row">
         <div class="">
             <div class="card ">
                 <div class="card-header">
                     <i class="fa fa-filter"></i> Filters
-                    <button class="btn btn-sm btn-secondary float-right" ng-click="resetFilters()">
+                    <button class="btn btn-sm btn-secondary pull-right" ng-click="resetFilters()">
                         <i class="fa fa-refresh"></i> Reset
                     </button>
                 </div>
@@ -441,7 +428,7 @@
                             <div class="card ">
                                 <div class="card-header">
                                     <strong>Request Payload</strong>
-                                    <button class="btn btn-sm btn-secondary float-right" ng-click="copyToClipboard(selectedLog.request_payload)">
+                                    <button class="btn btn-sm btn-secondary pull-right" ng-click="copyToClipboard(selectedLog.request_payload)">
                                         <i class="fa fa-copy"></i> Copy
                                     </button>
                                 </div>
@@ -458,7 +445,7 @@
                             <div class="card ">
                                 <div class="card-header">
                                     <strong>Response Payload</strong>
-                                    <button class="btn btn-sm btn-secondary float-right" ng-click="copyToClipboard(selectedLog.response_payload)">
+                                    <button class="btn btn-sm btn-secondary pull-right" ng-click="copyToClipboard(selectedLog.response_payload)">
                                         <i class="fa fa-copy"></i> Copy
                                     </button>
                                 </div>
@@ -514,6 +501,8 @@
             </div>
         </div>
     </div>
+</div>
+</div>
 </div>
 
 <style>

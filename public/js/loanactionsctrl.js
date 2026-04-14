@@ -528,7 +528,7 @@
                        await  http.get(endpoint+'/approve',{params:{
                             ...next,loan_id:routeParams.id}
                         })
-                       return alert("Loan approved successfully for userid "+userId+" at Step "+next.rank)
+                       return //alert("Loan approved successfully for userid "+userId+" at Step "+next.rank)
                     }
                         //is  this loan already approved and we are doing an approval undo or are we doing approval for the first time?
                         //all people have approved
@@ -548,11 +548,11 @@
                                     console.log(first)
                                     console.log(approvers)
                             await approve(first)
-                             alert('approved for first time')
+                           //  alert('approved for first time')
                              scope.cancel();
                              return;
                             }else{
-                                 alert('Peding approval by user '+ first)
+                                 alert('Pending approval by user '+ first.user_id)
                              scope.cancel();
                              return;
                             }
@@ -572,20 +572,20 @@
                                         }
                                     }else{
                                         scope.msg='Pending approval by '+next.user_id
-                                        alert(scope.msg)
+                                       // alert(scope.msg)
                                         scope.cancel();
                                         return;
                                     }
                                 }else{
-                                    alert('no next approver found')
+                                    // alert('no next approver found')
                                     scope.cancel();
                                 }
                                }else{
-                                alert('no previous approver found')
+                                // alert('no previous approver found')
                                 scope.cancel();
                                 return;
                                }
-alert('passed')
+// alert('passed')
                             }
                         }
                     params.loanId = scope.accountId;

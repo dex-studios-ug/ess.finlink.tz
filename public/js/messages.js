@@ -1,7 +1,7 @@
 mifosX.ng.application
 .controller('SMSViewCtrl', ['$scope', '$http', '$filter', '$uibModal', 
     function($scope, $http, $filter, $uibModal ) {
-mifosX.ng.application
+const smsendpoint = 'http://localhost:3000/api/sms';
     
     // Initialize scope variables
     $scope.smsLogs = [];

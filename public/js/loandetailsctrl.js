@@ -237,9 +237,11 @@
                                 var next = approvers[approvers.findIndex(a=>a.user_id==last.user_id&&a.rank==last.rank)+1]
                                 if(next){
                                     var nextuser=next.user_id;
-                                    const nuresp =await resourceFactory.usersResource.get(nextuser);
-                                    if(nuresp?.data?.username)nextuser=nuresp.data.username;
-                                  approval_state="Forwarded to User:"+nextuser;
+                                    resourceFactory.userResource.getUser({userId:nextuser},(user)=>{
+                                        scope.state="Forwarded to "+user.username;
+                                    });
+                                    
+                                  approval_state="Forwarded to UserId: "+nextuser;
 
                                   if(next.user_id==userId){
                                     approval_state="Pending Your Approval";

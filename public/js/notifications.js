@@ -30,8 +30,8 @@
             $scope.counter = 0;
 
             // Example: get from logged-in user context
-            $rootScope.currentUser=$scope.currentSession.user;
-            var userId = $rootScope.currentUser?.userId;
+            $rootScope.currentUser=$scope?.currentSession?.user||1;
+            var userId = $rootScope.currentUser?.userId||1;
             var userRole = $rootScope.currentUser?.roles?.[0].name;
             $scope.notifications = [];
             $scope.notificationsPerPage = 15;

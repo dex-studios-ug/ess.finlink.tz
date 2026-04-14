@@ -39,7 +39,7 @@ mifosX.ng.application.run(['$rootScope','$compile','$timeout','$http',function($
      }
    
     $rootScope.$on('$viewContentLoaded',function(){ 
-      $rootScope.buildAttachRef()
+         $timeout( $rootScope.buildAttachRef,250)
       })
   
     $rootScope.$on('$onRouteChangeSuccess',function(){ 
